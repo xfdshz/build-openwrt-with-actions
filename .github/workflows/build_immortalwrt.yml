@@ -33,6 +33,7 @@ on:
 
 jobs:
   build:
+    # 使用更大磁盘的 Runner（约 80GB 可用空间）
     runs-on: ubuntu-latest-8-cores
     name: 🚀 编译 (Build)
     steps:
@@ -67,13 +68,24 @@ jobs:
       - name: Freeing up disk space
         uses: easimon/maximize-build-space@master
         with:
-          root-reserve-mb: 3072
+          root-reserve-mb: 2048   # 从 3072 降低到 2048，释放更多可用空间
           swap-size-mb: 1
           remove-dotnet: "true"
           remove-android: "true"
           remove-haskell: "true"
           remove-codeql: "true"
           remove-docker-images: "true"
+
+      # 额外激进清理：删除 GitHub 缓存的工具链和大型目录
+      - name: Extra aggressive cleanup
+        run: |
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/go
+          sudo rm -rf /usr/local/.cargo
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo apt-get clean
+          sudo docker system prune -a -f
+          df -hT
 
       - name: Free up disk space complete
         run: |
@@ -85,7 +97,7 @@ jobs:
       - name: 下载编译所需的依赖 (Install the software packages required for compilation)
         run: |
           sudo apt update
-          sudo apt full-upgrade -y
+          # 移除 full-upgrade 避免额外空间占用
           sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
 
       - name: 克隆当前仓库 (Clone current repo)
@@ -119,8 +131,9 @@ jobs:
         if: ${{inputs.ssh == true}}
         uses: csexton/debugger-action@master
 
-      - name: 启用ssh生成了.config后在编译前上传配置(Upload config before build)
-        if: ${{inputs.multithreading == true}}
+      - name: 在编译前上传配置 (Upload config before build)
+        # 无论是否多线程都上传配置，方便排查问题
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: config-before-build
