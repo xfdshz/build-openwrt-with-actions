@@ -33,7 +33,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     name: 🚀 编译 (Build)
     steps:
       - name: Before freeing up disk space
