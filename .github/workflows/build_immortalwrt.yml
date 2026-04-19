@@ -34,7 +34,7 @@ on:
 jobs:
   build:
     # 使用更大磁盘的 Runner（约 80GB 可用空间）
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     name: 🚀 编译 (Build)
     steps:
       - name: Before freeing up disk space
